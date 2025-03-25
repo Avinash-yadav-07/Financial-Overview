@@ -10,13 +10,17 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-} from "@mui/material"; // Add Dialog imports
+  Box,
+} from "@mui/material";
 import MDBox from "components/MDBox";
 import MDTypography from "components/MDTypography";
 import MDProgress from "components/MDProgress";
 import DataTable from "examples/Tables/DataTable";
 import { db } from "../manage-employee/firebase";
 import { collection, getDocs, getDoc, doc, query, where, onSnapshot } from "firebase/firestore";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
+import { useMaterialUIController } from "context";
 
 const statuses = ["Ongoing", "Completed", "On Hold"];
 
@@ -65,7 +69,6 @@ const ProjectInfo = ({ name, projectId }) => (
 ProjectInfo.propTypes = {
   name: PropTypes.string.isRequired,
   projectId: PropTypes.string.isRequired,
-  // Note: 'a' is listed in propTypes but not used in the component. Removing it to avoid warnings.
 };
 
 const ManageProjectReadOnly = () => {
@@ -77,6 +80,9 @@ const ManageProjectReadOnly = () => {
   const [accounts, setAccounts] = useState([]);
   const [projectExpenses, setProjectExpenses] = useState(0);
   const [projectRevenue, setProjectRevenue] = useState(0);
+
+  const [controller] = useMaterialUIController();
+  const { miniSidenav, darkMode } = controller;
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -187,7 +193,7 @@ const ManageProjectReadOnly = () => {
         <MDBox display="flex" justifyContent="center">
           <Button
             variant="gradient"
-            color="info"
+            color={darkMode ? "dark" : "info"}
             onClick={() => handleViewDetails(project)}
             sx={{ mb: 2 }}
           >
@@ -199,86 +205,106 @@ const ManageProjectReadOnly = () => {
   };
 
   return (
-    <MDBox
-      p={3}
-      sx={{
-        marginLeft: "250px",
-        marginTop: "30px",
-        width: "calc(100% - 250px)",
-      }}
-    >
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card
-            sx={{
-              marginTop: "20px",
-              borderRadius: "12px",
-              overflow: "visible",
-            }}
-          >
-            <MDBox
-              mx={2}
-              mt={-3}
-              py={3}
-              px={2}
-              variant="gradient"
-              bgColor="info"
-              borderRadius="lg"
-              coloredShadow="info"
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <MDTypography variant="h6" color="white">
-                Projects
-              </MDTypography>
-            </MDBox>
-            <MDBox pt={3} pb={2} px={2}>
-              <DataTable
-                table={tableData}
-                isSorted={false}
-                entriesPerPage={false}
-                showTotalEntries={false}
-                noEndBorder
-              />
-            </MDBox>
-          </Card>
+    <Box sx={{ backgroundColor: darkMode ? "background.default" : "background.paper", minHeight: "100vh" }}>
+      <DashboardNavbar
+        absolute
+        light={!darkMode}
+        isMini={false}
+        sx={{
+          backgroundColor: darkMode ? "rgba(33, 33, 33, 0.9)" : "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          zIndex: 1100,
+          padding: "0 16px",
+          minHeight: "60px",
+          top: "8px",
+          left: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          width: { xs: "100%", md: miniSidenav ? "calc(100% - 80px)" : "calc(100% - 260px)" },
+        }}
+      />
+      <MDBox
+        p={3}
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          marginTop: { xs: "140px", md: "100px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          minHeight: "calc(100vh - 80px)",
+          paddingTop: { xs: "32px", md: "24px" },
+          zIndex: 1000,
+        }}
+      >
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <MDBox
+                mx={2}
+                mt={-3}
+                py={3}
+                px={2}
+                variant="gradient"
+                bgColor={darkMode ? "dark" : "info"}
+                borderRadius="lg"
+                coloredShadow={darkMode ? "dark" : "info"}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <MDTypography variant="h6" color={darkMode ? "white" : "black"}>
+                  Projects
+                </MDTypography>
+              </MDBox>
+              <MDBox pt={3} pb={2} px={2}>
+                <DataTable
+                  table={tableData}
+                  isSorted={false}
+                  entriesPerPage={false}
+                  showTotalEntries={false}
+                  noEndBorder
+                />
+              </MDBox>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </MDBox>
+      <Box
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          zIndex: 1100,
+        }}
+      >
+        <Footer />
+      </Box>
 
       <Dialog
         open={viewDetailsOpen}
         onClose={() => setViewDetailsOpen(false)}
         maxWidth="md"
         fullWidth
+        sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
       >
-        <DialogTitle>Project Details</DialogTitle>
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Project Details</DialogTitle>
         <DialogContent>
           {selectedProject && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Project ID</Typography>
-                <Typography>{selectedProject.projectId || selectedProject.id || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Project ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.projectId || selectedProject.id || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Name</Typography>
-                <Typography>{selectedProject.name || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Name</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.name || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Account ID</Typography>
-                <Typography>
-                  {selectedProject.accountId?.accountId || selectedProject.accountId || "N/A"}
-                </Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Account ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.accountId?.accountId || selectedProject.accountId || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Client ID</Typography>
-                <Typography>
-                  {selectedProject.clientId?.clientId || selectedProject.clientId || "N/A"}
-                </Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Client ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.clientId?.clientId || selectedProject.clientId || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Team</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Team</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {Array.isArray(selectedProject.team)
                     ? selectedProject.team.join(", ")
                     : typeof selectedProject.team === "object"
@@ -286,67 +312,65 @@ const ManageProjectReadOnly = () => {
                     : selectedProject.team || "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Budget</Typography>
-                <Typography>${selectedProject.financialMetrics?.budget || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Budget</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${selectedProject.financialMetrics?.budget || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Expenses</Typography>
-                <Typography>${projectExpenses}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Expenses</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${projectExpenses}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">ROI (%)</Typography>
-                <Typography>{selectedProject.financialMetrics?.roi || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>ROI (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.roi || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Burn Rate</Typography>
-                <Typography>{selectedProject.financialMetrics?.burnRate || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Burn Rate</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.burnRate || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Profit Margin (%)</Typography>
-                <Typography>{selectedProject.financialMetrics?.profitMargin || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Profit Margin (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.profitMargin || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Revenue Generated</Typography>
-                <Typography>
-                  ${selectedProject.financialMetrics?.revenueGenerated || projectRevenue}
-                </Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Revenue Generated</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${selectedProject.financialMetrics?.revenueGenerated || projectRevenue}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Expected Revenue</Typography>
-                <Typography>{selectedProject.financialMetrics?.expectedRevenue || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Expected Revenue</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.expectedRevenue || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Start Date</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Start Date</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.startDate
                     ? new Date(selectedProject.startDate).toLocaleDateString()
                     : "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">End Date</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>End Date</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.endDate
                     ? new Date(selectedProject.endDate).toLocaleDateString()
                     : "Ongoing"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Status</Typography>
-                <Typography>{selectedProject.status || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Status</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.status || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Completion (%)</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Completion (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.completion !== undefined
                     ? `${selectedProject.completion}%`
                     : "N/A"}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2">Description</Typography>
-                <Typography>{selectedProject.description || "No description available"}</Typography>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Description</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.description || "No description available"}</Typography>
               </Grid>
             </Grid>
           )}
@@ -355,7 +379,7 @@ const ManageProjectReadOnly = () => {
           <Button onClick={() => setViewDetailsOpen(false)}>Close</Button>
         </DialogActions>
       </Dialog>
-    </MDBox>
+    </Box>
   );
 };
 

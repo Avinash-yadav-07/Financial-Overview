@@ -17,6 +17,7 @@ import ManageAccountReadOnly from "./layouts/manage-accounts/ManageAccountReadOn
 import ManageProjectReadOnly from "layouts/manage-projects/ManageProjectReadOnly";
 import ManageExpenseReadOnly from "layouts/manage-expense/ManageExpenseReadOnly";
 import ManageEarningReadOnly from "layouts/manage-earning/ManageEarningReadOnly";
+import ManageClientReadOnly from "layouts/manage-client/ManageClientReadOnly";
 import ProtectedRoute from "./layouts/authentication/ProtectedRoute"; // Import the ProtectedRoute component
 import Unauthorized from "./layouts/authentication/Unauthorized";
 
@@ -54,6 +55,17 @@ const routes = [
         component: (
           <ProtectedRoute allowedRoles={["ManageClient:full access"]}>
             <ManageClient />
+          </ProtectedRoute>
+        ),
+      },
+      {
+        name: "Manage Clients (Read Only)",
+        key: "manage-clients-read-only",
+        icon: <Icon fontSize="small">group</Icon>,
+        route: "/manage/clients/read-only",
+        component: (
+          <ProtectedRoute allowedRoles={["ManageClient:read"]}>
+            <ManageClientReadOnly />
           </ProtectedRoute>
         ),
       },

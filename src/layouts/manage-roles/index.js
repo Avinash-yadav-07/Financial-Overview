@@ -16,32 +16,21 @@ import {
   MenuItem,
   Checkbox,
   FormControlLabel,
-  Autocomplete,
 } from "@mui/material";
 import { db } from "../manage-employee/firebase";
 import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import MDBox from "components/MDBox";
 import InputAdornment from "@mui/material/InputAdornment";
 import MDTypography from "components/MDTypography";
-import { ArrowDropDown } from "@mui/icons-material";
 import MDButton from "components/MDButton";
 import Icon from "@mui/material/Icon";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
+import { useMaterialUIController } from "context";
 
 const statuses = ["Active", "Archived"];
 const experienceLevels = ["Entry-level", "Mid-level", "Senior-level"];
 const departments = ["Development", "HR", "Marketing", "Finance", "Operations"];
-
-// Define the permissions list
-const permissionsList = [
-  "ManageProject:read",
-  "ManageProject:write",
-  "ManageAccount:read",
-  "ManageAccount:write",
-  "ManageExpense:read",
-  "ManageExpense:write",
-  "ManageEarning:read",
-  "ManageEarning:write",
-];
 
 const generateRoleId = () => {
   const randomNumber = Math.floor(Math.random() * 900) + 100;
@@ -66,7 +55,9 @@ const ManageRoles = () => {
   const [salaryRange, setSalaryRange] = useState({ min: "", max: "" });
   const [isManagerial, setIsManagerial] = useState(false);
   const [status, setStatus] = useState("");
-  const [permissions, setPermissions] = useState([]);
+
+  const [controller] = useMaterialUIController();
+  const { miniSidenav, darkMode } = controller;
 
   // Fetch roles on component mount
   useEffect(() => {
@@ -98,7 +89,6 @@ const ManageRoles = () => {
     setSalaryRange(role.salaryRange || { min: "", max: "" });
     setIsManagerial(role.isManagerial || false);
     setStatus(role.status);
-    setPermissions(role.permissions || []);
     setOpen(true);
   };
 
@@ -122,7 +112,6 @@ const ManageRoles = () => {
       },
       isManagerial,
       status,
-      permissions,
       createdAt: editingRole ? editingRole.createdAt : new Date(),
       updatedAt: new Date(),
     };
@@ -155,136 +144,172 @@ const ManageRoles = () => {
     setSalaryRange({ min: "", max: "" });
     setIsManagerial(false);
     setStatus("");
-    setPermissions([]);
     setEditingRole(null);
   };
 
   return (
-    <Box p={3} sx={{ marginLeft: "250px", marginTop: "30px", width: "calc(100% - 250px)" }}>
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card sx={{ marginTop: "20px", borderRadius: "12px", overflow: "visible" }}>
-            <MDBox
-              mx={0}
-              mt={-4.5}
-              py={3}
-              px={3}
-              variant="gradient"
-              bgColor="info"
-              borderRadius="lg"
-              coloredShadow="info"
-            >
-              <MDTypography variant="h6" color="white">
-                Role Management
-              </MDTypography>
-            </MDBox>
-            <MDBox pt={3} pb={2} px={2}>
-              <Button variant="gradient" color="info" onClick={handleClickOpen} sx={{ mb: 2 }}>
-                Add Role
-              </Button>
-              <Grid container spacing={3} sx={{ padding: "16px" }}>
-                {roles.map((role) => (
-                  <Grid item xs={12} key={role.id}>
-                    <Card
-                      sx={{
-                        background: "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
-                        borderRadius: "12px",
-                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                        padding: "20px",
-                        transition: "0.3s ease-in-out",
-                        "&:hover": {
-                          boxShadow: "0 6px 12px rgba(0, 0, 0, 0.15)",
-                          transform: "scale(1.02)",
-                        },
-                      }}
-                    >
-                      <CardContent>
-                        <Typography variant="h4" sx={{ fontWeight: "bold", color: "#333", mb: 2 }}>
-                          {role.roleId}
-                        </Typography>
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Role Name:</strong> {role.roleName}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Description:</strong> {role.description}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Department:</strong> {role.department}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Experience Level:</strong> {role.experienceLevel}
-                            </MDTypography>
+    <Box sx={{ backgroundColor: darkMode ? "background.default" : "background.paper", minHeight: "100vh" }}>
+      <DashboardNavbar
+        absolute
+        light={!darkMode}
+        isMini={false}
+        sx={{
+          backgroundColor: darkMode ? "rgba(33, 33, 33, 0.9)" : "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          zIndex: 1100,
+          padding: "0 16px",
+          minHeight: "60px",
+          top: "8px",
+          left: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          width: { xs: "100%", md: miniSidenav ? "calc(100% - 80px)" : "calc(100% - 260px)" },
+        }}
+      />
+      <MDBox
+        p={3}
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          marginTop: { xs: "140px", md: "100px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          minHeight: "calc(100vh - 80px)",
+          paddingTop: { xs: "32px", md: "24px" },
+          zIndex: 1000,
+        }}
+      >
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <MDBox
+                mx={2}
+                mt={-3}
+                py={3}
+                px={2}
+                variant="gradient"
+                bgColor={darkMode ? "dark" : "info"}
+                borderRadius="lg"
+                coloredShadow={darkMode ? "dark" : "info"}
+              >
+                <MDTypography variant="h6" color={darkMode ? "white" : "white"}>
+                  Role Management
+                </MDTypography>
+              </MDBox>
+              <MDBox pt={3} pb={2} px={2}>
+                <Button variant="gradient" color={darkMode ? "dark" : "info"} onClick={handleClickOpen} sx={{ mb: 2 }}>
+                  Add Role
+                </Button>
+                <Grid container spacing={3} sx={{ padding: "16px" }}>
+                  {roles.map((role) => (
+                    <Grid item xs={12} key={role.id}>
+                      <Card
+                        sx={{
+                          background: darkMode
+                            ? "linear-gradient(135deg, #424242 0%, #212121 100%)"
+                            : "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                          padding: "20px",
+                          transition: "0.3s ease-in-out",
+                          "&:hover": {
+                            boxShadow: "0 6px 12px rgba(0, 0, 0, 0.15)",
+                            transform: "scale(1.02)",
+                          },
+                        }}
+                      >
+                        <CardContent>
+                          <Typography
+                            variant="h4"
+                            sx={{ fontWeight: "bold", color: darkMode ? "white" : "#333", mb: 2 }}
+                          >
+                            {role.roleId}
+                          </Typography>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} md={6}>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Role Name:</strong> {role.roleName}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Description:</strong> {role.description}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Department:</strong> {role.department}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Experience Level:</strong> {role.experienceLevel}
+                              </MDTypography>
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Salary Range:</strong> ${role.salaryRange?.max}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Managerial:</strong> {role.isManagerial ? "Yes" : "No"}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Status:</strong>{" "}
+                                <Chip
+                                  label={role.status}
+                                  sx={{
+                                    backgroundColor: role.status === "Active" ? "#2196F3" : "#9E9E9E",
+                                    color: "#fff",
+                                    fontSize: "12px",
+                                    padding: "4px 8px",
+                                    borderRadius: "6px",
+                                  }}
+                                />
+                              </MDTypography>
+                            </Grid>
                           </Grid>
-                          <Grid item xs={12} md={6}>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Salary Range:</strong> ${role.salaryRange?.max}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Managerial:</strong> {role.isManagerial ? "Yes" : "No"}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Status:</strong>{" "}
-                              <Chip
-                                label={role.status}
-                                sx={{
-                                  backgroundColor: role.status === "Active" ? "#2196F3" : "#9E9E9E",
-                                  color: "#fff",
-                                  fontSize: "12px",
-                                  padding: "4px 8px",
-                                  borderRadius: "6px",
-                                }}
-                              />
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Permissions:</strong>{" "}
-                              {role.permissions.map((permission, index) => (
-                                <Chip key={index} label={permission} sx={{ margin: "2px" }} />
-                              ))}
-                            </MDTypography>
-                          </Grid>
-                        </Grid>
-                      </CardContent>
-                      <CardActions sx={{ display: "flex", justifyContent: "flex-end" }}>
-                        <MDButton
-                          variant="text"
-                          onClick={() => handleEdit(role)}
-                          sx={{
-                            background:
-                              "linear-gradient(100% 100% at 100% 0, #5adaff 0, #5468ff 100%)",
-                            color: "#000",
-                            fontWeight: "bold",
-                            borderRadius: "8px",
-                            padding: "12px 24px",
-                          }}
-                        >
-                          <Icon fontSize="medium">edit</Icon>&nbsp;Edit
-                        </MDButton>
-                        <MDButton
-                          variant="text"
-                          color="error"
-                          onClick={() => {
-                            setDeleteId(role.id);
-                            setConfirmDeleteOpen(true);
-                          }}
-                          sx={{ ml: 1, padding: "12px 24px" }}
-                        >
-                          <Icon>delete</Icon>&nbsp;Delete
-                        </MDButton>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </MDBox>
-          </Card>
+                        </CardContent>
+                        <CardActions sx={{ display: "flex", justifyContent: "flex-end" }}>
+                          <MDButton
+                            variant="gradient"
+                            color={darkMode ? "dark" : "info"}
+                            onClick={() => handleEdit(role)}
+                            sx={{ padding: "12px 24px" }}
+                          >
+                            <Icon fontSize="medium">edit</Icon>&nbsp;Edit
+                          </MDButton>
+                          <MDButton
+                            variant="gradient"
+                            color="error"
+                            onClick={() => {
+                              setDeleteId(role.id);
+                              setConfirmDeleteOpen(true);
+                            }}
+                            sx={{ ml: 1, padding: "12px 24px" }}
+                          >
+                            <Icon>delete</Icon>&nbsp;Delete
+                          </MDButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </MDBox>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </MDBox>
+      <Box
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          zIndex: 1100,
+        }}
+      >
+        <Footer />
+      </Box>
 
       {/* Role Form Dialog */}
-      <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>{editingRole ? "Edit Role" : "Add Role"}</DialogTitle>
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        fullWidth
+        maxWidth="sm"
+        sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+      >
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>
+          {editingRole ? "Edit Role" : "Add Role"}
+        </DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -295,6 +320,7 @@ const ManageRoles = () => {
                 fullWidth
                 margin="dense"
                 required
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -307,6 +333,7 @@ const ManageRoles = () => {
                 required
                 multiline
                 rows={3}
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -318,6 +345,7 @@ const ManageRoles = () => {
                 fullWidth
                 margin="dense"
                 required
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               >
                 {departments.map((dept) => (
                   <MenuItem key={dept} value={dept}>
@@ -335,6 +363,7 @@ const ManageRoles = () => {
                 fullWidth
                 margin="dense"
                 required
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               >
                 {experienceLevels.map((level) => (
                   <MenuItem key={level} value={level}>
@@ -352,6 +381,7 @@ const ManageRoles = () => {
                 margin="dense"
                 required
                 placeholder="Separate with commas"
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -363,6 +393,7 @@ const ManageRoles = () => {
                 margin="dense"
                 required
                 placeholder="Separate with commas"
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -377,6 +408,7 @@ const ManageRoles = () => {
                 InputProps={{
                   startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 }}
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -389,6 +421,7 @@ const ManageRoles = () => {
                   />
                 }
                 label="Managerial Role"
+                sx={{ color: darkMode ? "white" : "black" }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -400,6 +433,7 @@ const ManageRoles = () => {
                 fullWidth
                 margin="dense"
                 required
+                sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
               >
                 {statuses.map((s) => (
                   <MenuItem key={s} value={s}>
@@ -407,24 +441,6 @@ const ManageRoles = () => {
                   </MenuItem>
                 ))}
               </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <Autocomplete
-                multiple
-                options={permissionsList}
-                value={permissions}
-                onChange={(event, newValue) => {
-                  setPermissions(newValue);
-                }}
-                renderInput={(params) => (
-                  <TextField {...params} label="Permissions" placeholder="Select Permissions" />
-                )}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip key={index} label={option} {...getTagProps({ index })} />
-                  ))
-                }
-              />
             </Grid>
           </Grid>
         </DialogContent>
@@ -437,8 +453,12 @@ const ManageRoles = () => {
       </Dialog>
 
       {/* Confirm Delete Dialog */}
-      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-        <DialogTitle>Want to delete role data?</DialogTitle>
+      <Dialog
+        open={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+      >
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Want to delete role data?</DialogTitle>
         <DialogActions>
           <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
           <Button onClick={handleDelete} color="error">
@@ -448,8 +468,12 @@ const ManageRoles = () => {
       </Dialog>
 
       {/* Confirm Update Dialog */}
-      <Dialog open={confirmUpdateOpen} onClose={() => setConfirmUpdateOpen(false)}>
-        <DialogTitle>Want to save details?</DialogTitle>
+      <Dialog
+        open={confirmUpdateOpen}
+        onClose={() => setConfirmUpdateOpen(false)}
+        sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+      >
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Want to save details?</DialogTitle>
         <DialogActions>
           <Button onClick={() => setConfirmUpdateOpen(false)}>Cancel</Button>
           <Button onClick={confirmUpdate} color="primary">

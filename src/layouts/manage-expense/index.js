@@ -15,7 +15,6 @@ import {
   FormControlLabel,
   Box,
   Chip,
-  Autocomplete,
   FormControl,
   InputLabel,
   Select,
@@ -24,14 +23,16 @@ import {
 import { db } from "../manage-employee/firebase";
 import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import MDBox from "components/MDBox";
-import MDTypography from "components/MDTypography";
 import MDButton from "components/MDButton";
+import MDTypography from "components/MDTypography";
 import Icon from "@mui/material/Icon";
 import { DatePicker } from "@mui/x-date-pickers";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
+import { useMaterialUIController } from "context";
 
-// Expense categories (Removed "Account" from the list)
 const categories = [
   "Rent",
   "Software Licenses",
@@ -43,7 +44,6 @@ const categories = [
 ];
 
 const ManageExpenses = () => {
-  // Dialog and data states
   const [open, setOpen] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [confirmUpdateOpen, setConfirmUpdateOpen] = useState(false);
@@ -51,16 +51,11 @@ const ManageExpenses = () => {
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [editingExpense, setEditingExpense] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
-
   const [dateFilterType, setDateFilterType] = useState("all");
   const [customStartDate, setCustomStartDate] = useState(null);
   const [customEndDate, setCustomEndDate] = useState(null);
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-
-  // Search state
   const [searchTerm, setSearchTerm] = useState("");
-
-  // Form states
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
@@ -69,22 +64,20 @@ const ManageExpenses = () => {
   const [accountId, setAccountId] = useState("");
   const [recurring, setRecurring] = useState(false);
   const [softwareName, setSoftwareName] = useState("");
-  const [employeeIds, setEmployeeIds] = useState([]);
   const [selectedEmployeeIds, setSelectedEmployeeIds] = useState([]);
-
-  // New states for Project IDs, Account IDs, and Employee IDs
   const [projectIds, setProjectIds] = useState([]);
   const [accountIds, setAccountIds] = useState([]);
+  const [employeeIds, setEmployeeIds] = useState([]);
 
-  // Fetch expenses, project IDs, account IDs, and employee IDs from Firestore
+  const [controller] = useMaterialUIController();
+  const { miniSidenav, darkMode } = controller;
+
   useEffect(() => {
     const fetchExpenses = async () => {
       const querySnapshot = await getDocs(collection(db, "expenses"));
       const expensesData = querySnapshot.docs.map((doc) => {
         const data = doc.data();
-        const category = Array.isArray(data.category)
-          ? data.category
-          : [data.category].filter((c) => c);
+        const category = Array.isArray(data.category) ? data.category : [data.category].filter((c) => c);
         return { id: doc.id, ...data, category };
       });
       setExpenses(expensesData);
@@ -93,20 +86,17 @@ const ManageExpenses = () => {
 
     const fetchProjectIds = async () => {
       const querySnapshot = await getDocs(collection(db, "projects"));
-      const projectIdsData = querySnapshot.docs.map((doc) => doc.data().projectId);
-      setProjectIds(projectIdsData);
+      setProjectIds(querySnapshot.docs.map((doc) => doc.data().projectId));
     };
 
     const fetchAccountIds = async () => {
       const querySnapshot = await getDocs(collection(db, "accounts"));
-      const accountIdsData = querySnapshot.docs.map((doc) => doc.data().accountId);
-      setAccountIds(accountIdsData);
+      setAccountIds(querySnapshot.docs.map((doc) => doc.data().accountId));
     };
 
     const fetchEmployeeIds = async () => {
       const querySnapshot = await getDocs(collection(db, "employees"));
-      const employeeIdsData = querySnapshot.docs.map((doc) => doc.data().employeeId);
-      setEmployeeIds(employeeIdsData);
+      setEmployeeIds(querySnapshot.docs.map((doc) => doc.data().employeeId));
     };
 
     fetchExpenses();
@@ -115,18 +105,14 @@ const ManageExpenses = () => {
     fetchEmployeeIds();
   }, []);
 
-  // Filter expenses based on search term and date filter
   useEffect(() => {
     let filtered = [...expenses];
-
-    // Apply category search filter
     if (searchTerm) {
       filtered = filtered.filter((expense) =>
         expense.category.some((cat) => cat.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
-    // Apply date filter
     const now = new Date();
     switch (dateFilterType) {
       case "today":
@@ -141,7 +127,7 @@ const ManageExpenses = () => {
         break;
       case "week":
         const weekStart = new Date(now);
-        weekStart.setDate(now.getDate() - now.getDay()); // Start of the week (Sunday)
+        weekStart.setDate(now.getDate() - now.getDay());
         filtered = filtered.filter((expense) => {
           const expenseDate = expense.date.toDate ? expense.date.toDate() : new Date(expense.date);
           return expenseDate >= weekStart && expenseDate <= now;
@@ -173,44 +159,32 @@ const ManageExpenses = () => {
       case "custom":
         if (customStartDate && customEndDate) {
           filtered = filtered.filter((expense) => {
-            const expenseDate = expense.date.toDate
-              ? expense.date.toDate()
-              : new Date(expense.date);
+            const expenseDate = expense.date.toDate ? expense.date.toDate() : new Date(expense.date);
             return expenseDate >= customStartDate && expenseDate <= customEndDate;
           });
         }
         break;
-      case "all":
       default:
-        // No date filtering applied
         break;
     }
-
     setFilteredExpenses(filtered);
   }, [expenses, searchTerm, dateFilterType, customStartDate, customEndDate]);
 
-  // Open Add/Edit dialog and reset form
   const handleClickOpen = () => {
     setOpen(true);
     resetForm();
   };
 
-  // Close dialog and reset form
   const handleClose = () => {
     setOpen(false);
     resetForm();
   };
 
-  // Populate form fields for editing an expense
   const handleEdit = (expense) => {
     setEditingExpense(expense);
-    setCategory(expense.category[0] || ""); // Assuming single category, adjust if multi-select
+    setCategory(expense.category[0] || "");
     setAmount(expense.amount);
-    setDate(
-      expense.date && typeof expense.date.toDate === "function"
-        ? expense.date.toDate().toISOString().split("T")[0]
-        : expense.date || ""
-    );
+    setDate(expense.date && typeof expense.date.toDate === "function" ? expense.date.toDate().toISOString().split("T")[0] : expense.date || "");
     setDescription(expense.description);
     setProjectId(expense.projectId || "");
     setAccountId(expense.accountId || "");
@@ -220,17 +194,12 @@ const ManageExpenses = () => {
     setOpen(true);
   };
 
-  // Handle submission of the form
   const handleSubmit = async () => {
     setConfirmUpdateOpen(true);
   };
 
-  // Generate a 4-digit random number for Expense ID
-  const generateExpenseId = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString();
-  };
+  const generateExpenseId = () => Math.floor(1000 + Math.random() * 9000).toString();
 
-  // Confirm update or add expense in Firestore
   const confirmUpdate = async () => {
     const parsedDate = new Date(date);
     if (isNaN(parsedDate.getTime())) {
@@ -240,7 +209,7 @@ const ManageExpenses = () => {
 
     const newExpense = {
       expenseId: editingExpense ? editingExpense.expenseId : generateExpenseId(),
-      category: category, // Single category
+      category,
       amount: Number(amount),
       date: parsedDate,
       description,
@@ -253,26 +222,21 @@ const ManageExpenses = () => {
 
     if (editingExpense) {
       await updateDoc(doc(db, "expenses", editingExpense.id), newExpense);
-      setExpenses(
-        expenses.map((exp) => (exp.id === editingExpense.id ? { ...exp, ...newExpense } : exp))
-      );
+      setExpenses(expenses.map((exp) => (exp.id === editingExpense.id ? { ...exp, ...newExpense } : exp)));
     } else {
       const docRef = await addDoc(collection(db, "expenses"), newExpense);
       setExpenses([...expenses, { id: docRef.id, ...newExpense }]);
     }
-
     setConfirmUpdateOpen(false);
     handleClose();
   };
 
-  // Handle deletion of an expense
   const handleDelete = async () => {
     await deleteDoc(doc(db, "expenses", deleteId));
     setExpenses(expenses.filter((exp) => exp.id !== deleteId));
     setConfirmDeleteOpen(false);
   };
 
-  // Reset all form fields
   const resetForm = () => {
     setCategory("");
     setAmount("");
@@ -288,394 +252,364 @@ const ManageExpenses = () => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
-      <MDBox
-        p={3}
-        sx={{
-          marginLeft: "250px",
-          marginTop: "30px",
-          width: "calc(100% - 250px)",
-        }}
-      >
-        <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <Card
-              sx={{
-                marginTop: "20px",
-                borderRadius: "12px",
-                overflow: "visible",
-              }}
-            >
-              <MDBox
-                mx={0}
-                mt={-4.5}
-                py={3}
-                px={3}
-                variant="gradient"
-                bgColor="info"
-                borderRadius="lg"
-                coloredShadow="info"
-              >
-                <MDTypography variant="h6" color="white">
-                  Expense Management
-                </MDTypography>
-              </MDBox>
-              <MDBox
-                pt={3}
-                pb={2}
-                px={2}
-                display="flex"
-                alignItems="center"
-                gap={2}
-                justifyContent="space-between"
-              >
-                <Box display="flex" gap={2}>
-                  <Button variant="gradient" color="info" onClick={handleClickOpen} sx={{ mb: 2 }}>
-                    Add expenses
-                  </Button>
-                  <TextField
-                    label="Search by Category"
-                    variant="outlined"
-                    size="small"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    sx={{
-                      maxWidth: 300,
-                      "& .MuiOutlinedInput-root": {
-                        borderRadius: "8px",
-                        backgroundColor: "#fff",
-                      },
-                    }}
-                  />
-                </Box>
-
-                {/* Date Filter Section */}
-                <Box display="flex" gap={2} alignItems="center">
-                  <FormControl
-                    variant="outlined"
-                    size="small"
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        fontSize: "1rem",
-                        padding: "12px 35px",
-                      },
-                      "& .MuiInputLabel-root": {
-                        fontSize: "0.9rem",
-                      },
-                    }}
-                  >
-                    <InputLabel>Date Filter</InputLabel>
-                    <Select
-                      value={dateFilterType}
-                      onChange={(e) => setDateFilterType(e.target.value)}
-                      label="Date Filter"
-                    >
-                      <MenuItem value="all">All Dates</MenuItem>
-                      <MenuItem value="today">Today</MenuItem>
-                      <MenuItem value="week">This Week</MenuItem>
-                      <MenuItem value="month">This Month</MenuItem>
-                      <MenuItem value="3months">Last 3 Months</MenuItem>
-                      <MenuItem value="year">This Year</MenuItem>
-                      <MenuItem value="custom">Custom Range</MenuItem>
-                    </Select>
-                  </FormControl>
-
-                  {dateFilterType === "custom" && (
-                    <Button
+      <Box sx={{ backgroundColor: darkMode ? "background.default" : "background.paper", minHeight: "100vh" }}>
+        <DashboardNavbar
+          absolute
+          light={!darkMode}
+          isMini={false}
+          sx={{
+            backgroundColor: darkMode ? "rgba(33, 33, 33, 0.9)" : "rgba(255, 255, 255, 0.9)",
+            backdropFilter: "blur(10px)",
+            zIndex: 1100,
+            padding: "0 16px",
+            minHeight: "60px",
+            top: "8px",
+            left: { xs: "0", md: miniSidenav ? "80px" : "250px" },
+            width: { xs: "100%", md: miniSidenav ? "calc(100% - 80px)" : "calc(100% - 250px)" },
+          }}
+        />
+        <MDBox
+          p={3}
+          sx={{
+            marginLeft: { xs: "0", md: miniSidenav ? "80px" : "250px" },
+            marginTop: { xs: "140px", md: "100px" },
+            backgroundColor: darkMode ? "background.default" : "background.paper",
+            minHeight: "calc(100vh - 80px)",
+            paddingTop: { xs: "32px", md: "24px" },
+            zIndex: 1000,
+          }}
+        >
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Card>
+                <MDBox
+                  mx={2}
+                  mt={-3}
+                  py={3}
+                  px={2}
+                  variant="gradient"
+                  bgColor={darkMode ? "dark" : "info"}
+                  borderRadius="lg"
+                  coloredShadow={darkMode ? "dark" : "info"}
+                >
+                  <MDTypography variant="h6" color={darkMode ? "white" : "white"}>
+                    Expense Management
+                  </MDTypography>
+                </MDBox>
+                <MDBox pt={3} pb={2} px={2} display="flex" alignItems="center" gap={2} justifyContent="space-between">
+                  <Box display="flex" gap={2}>
+                    <MDButton variant="gradient" color={darkMode ? "dark" : "info"} onClick={handleClickOpen}>
+                      Add Expenses
+                    </MDButton>
+                    <TextField
+                      label="Search by Category"
                       variant="outlined"
-                      onClick={() => setDatePickerOpen(true)}
-                      sx={{ height: 40 }}
-                    >
-                      Choose Dates
-                    </Button>
-                  )}
-                </Box>
-              </MDBox>
-
-              <Dialog open={datePickerOpen} onClose={() => setDatePickerOpen(false)}>
-                <DialogTitle>Select Date Range</DialogTitle>
-                <DialogContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
-                  <DatePicker
-                    label="Start Date"
-                    value={customStartDate}
-                    onChange={(newValue) => setCustomStartDate(newValue)}
-                    renderInput={(params) => <TextField {...params} />}
-                  />
-                  <DatePicker
-                    label="End Date"
-                    value={customEndDate}
-                    onChange={(newValue) => setCustomEndDate(newValue)}
-                    renderInput={(params) => <TextField {...params} />}
-                  />
-                </DialogContent>
-                <DialogActions>
-                  <Button onClick={() => setDatePickerOpen(false)}>Cancel</Button>
-                  <Button onClick={() => setDatePickerOpen(false)} color="primary">
-                    Apply
-                  </Button>
-                </DialogActions>
-              </Dialog>
-
-              {/* Expense Cards Grid */}
-              <Grid container spacing={3} sx={{ padding: "16px" }}>
-                {filteredExpenses.map((expense) => (
-                  <Grid item xs={12} md={12} key={expense.id}>
-                    <Card
+                      size="small"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
                       sx={{
-                        background: "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
-                        borderRadius: "12px",
-                        boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-                        padding: "20px",
-                        transition: "0.3s ease-in-out",
-                        "&:hover": {
-                          boxShadow: "0 6px 12px rgba(0, 0, 0, 0.15)",
-                          transform: "scale(1.02)",
+                        maxWidth: 300,
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: "8px",
+                          backgroundColor: darkMode ? "#424242" : "#fff",
+                          color: darkMode ? "white" : "black",
                         },
+                        "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" },
                       }}
-                    >
-                      <CardContent>
-                        <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
-                          {Array.isArray(expense.category) &&
-                            expense.category.map((cat, index) => (
-                              <Chip key={index} label={cat} color="primary" />
-                            ))}
-                        </Box>
+                    />
+                  </Box>
+                  <Box display="flex" gap={2} alignItems="center">
+                    <FormControl variant="outlined" size="small">
+                      <InputLabel sx={{ color: darkMode ? "white" : "black" }}>Date Filter</InputLabel>
+                      <Select
+                        value={dateFilterType}
+                        onChange={(e) => setDateFilterType(e.target.value)}
+                        label="Date Filter"
+                        sx={{ color: darkMode ? "white" : "black", "& .MuiSvgIcon-root": { color: darkMode ? "white" : "black" } }}
+                      >
+                        <MenuItem value="all">All Dates</MenuItem>
+                        <MenuItem value="today">Today</MenuItem>
+                        <MenuItem value="week">This Week</MenuItem>
+                        <MenuItem value="month">This Month</MenuItem>
+                        <MenuItem value="3months">Last 3 Months</MenuItem>
+                        <MenuItem value="year">This Year</MenuItem>
+                        <MenuItem value="custom">Custom Range</MenuItem>
+                      </Select>
+                    </FormControl>
+                    {dateFilterType === "custom" && (
+                      <Button
+                        variant="outlined"
+                        onClick={() => setDatePickerOpen(true)}
+                        sx={{ height: 40, color: darkMode ? "white" : "black", borderColor: darkMode ? "white" : "black" }}
+                      >
+                        Choose Dates
+                      </Button>
+                    )}
+                  </Box>
+                </MDBox>
 
-                        <Grid container spacing={2}>
-                          <Grid item xs={12} md={6}>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Expense ID:</strong> {expense.expenseId}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Amount:</strong> ${expense.amount}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Date:</strong>{" "}
-                              {expense.date?.toDate
-                                ? expense.date.toDate().toLocaleDateString()
-                                : new Date(expense.date).toLocaleDateString()}
-                            </MDTypography>
-                          </Grid>
+                <Dialog
+                  open={datePickerOpen}
+                  onClose={() => setDatePickerOpen(false)}
+                  sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+                >
+                  <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Select Date Range</DialogTitle>
+                  <DialogContent sx={{ p: 3, display: "flex", flexDirection: "column", gap: 2 }}>
+                    <DatePicker
+                      label="Start Date"
+                      value={customStartDate}
+                      onChange={(newValue) => setCustomStartDate(newValue)}
+                      renderInput={(params) => (
+                        <TextField {...params} sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }} />
+                      )}
+                    />
+                    <DatePicker
+                      label="End Date"
+                      value={customEndDate}
+                      onChange={(newValue) => setCustomEndDate(newValue)}
+                      renderInput={(params) => (
+                        <TextField {...params} sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }} />
+                      )}
+                    />
+                  </DialogContent>
+                  <DialogActions>
+                    <Button onClick={() => setDatePickerOpen(false)} sx={{ color: darkMode ? "white" : "black" }}>Cancel</Button>
+                    <Button onClick={() => setDatePickerOpen(false)} color="primary">Apply</Button>
+                  </DialogActions>
+                </Dialog>
 
-                          <Grid item xs={12} md={6}>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Description:</strong> {expense.description}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Project ID:</strong> {expense.projectId || "N/A"}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Account ID:</strong> {expense.accountId || "N/A"}
-                            </MDTypography>
-                            <MDTypography variant="body2" color="textSecondary">
-                              <strong>Recurring:</strong>{" "}
-                              <Chip label={expense.recurring ? "Yes" : "No"} size="small" />
-                            </MDTypography>
+                <Grid container spacing={3} sx={{ padding: "16px" }}>
+                  {filteredExpenses.map((expense) => (
+                    <Grid item xs={12} key={expense.id}>
+                      <Card
+                        sx={{
+                          background: darkMode ? "linear-gradient(135deg, #424242 0%, #212121 100%)" : "linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%)",
+                          borderRadius: "12px",
+                          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
+                          padding: "20px",
+                          transition: "0.3s ease-in-out",
+                          "&:hover": { boxShadow: "0 6px 12px rgba(0, 0, 0, 0.15)", transform: "scale(1.02)" },
+                        }}
+                      >
+                        <CardContent>
+                          <Box sx={{ display: "flex", gap: 1, mb: 2 }}>
+                            {Array.isArray(expense.category) &&
+                              expense.category.map((cat, index) => (
+                                <Chip key={index} label={cat} color="primary" />
+                              ))}
+                          </Box>
+                          <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Expense ID:</strong> {expense.expenseId}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Amount:</strong> ${expense.amount}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Date:</strong> {expense.date?.toDate ? expense.date.toDate().toLocaleDateString() : new Date(expense.date).toLocaleDateString()}
+                              </MDTypography>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Description:</strong> {expense.description}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Project ID:</strong> {expense.projectId || "N/A"}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Account ID:</strong> {expense.accountId || "N/A"}
+                              </MDTypography>
+                              <MDTypography variant="body2" color={darkMode ? "white" : "textSecondary"}>
+                                <strong>Recurring:</strong> <Chip label={expense.recurring ? "Yes" : "No"} size="small" />
+                              </MDTypography>
+                            </Grid>
                           </Grid>
-                        </Grid>
-                      </CardContent>
-                      <CardActions sx={{ display: "flex", justifyContent: "flex-end" }}>
-                        <MDButton
-                          variant="text"
-                          onClick={() => handleEdit(expense)}
-                          sx={{
-                            background:
-                              "linear-gradient(100% 100% at 100% 0, #5adaff 0, #5468ff 100%)",
-                            color: "#000",
-                            fontWeight: "bold",
-                            borderRadius: "8px",
-                            padding: "12px 24px",
-                          }}
-                        >
-                          <Icon fontSize="medium">edit</Icon> Edit
-                        </MDButton>
-                        <MDButton
-                          variant="text"
-                          color="error"
-                          onClick={() => {
-                            setDeleteId(expense.id);
-                            setConfirmDeleteOpen(true);
-                          }}
-                          sx={{ ml: 1, padding: "12px 24px" }}
-                        >
-                          <Icon fontSize="medium">delete</Icon> Delete
-                        </MDButton>
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            </Card>
+                        </CardContent>
+                        <CardActions sx={{ display: "flex", justifyContent: "flex-end" }}>
+                          <MDButton variant="gradient" color={darkMode ? "dark" : "info"} onClick={() => handleEdit(expense)}>
+                            <Icon fontSize="medium">edit</Icon> Edit
+                          </MDButton>
+                          <MDButton
+                            variant="gradient"
+                            color="error"
+                            onClick={() => {
+                              setDeleteId(expense.id);
+                              setConfirmDeleteOpen(true);
+                            }}
+                          >
+                            <Icon fontSize="medium">delete</Icon> Delete
+                          </MDButton>
+                        </CardActions>
+                      </Card>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Card>
+            </Grid>
           </Grid>
-        </Grid>
+        </MDBox>
+        <Box sx={{ marginLeft: { xs: "0", md: miniSidenav ? "80px" : "250px" }, backgroundColor: darkMode ? "background.default" : "background.paper", zIndex: 1100 }}>
+          <Footer />
+        </Box>
 
-        {/* Expense Form Dialog */}
-        <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-          <DialogTitle>{editingExpense ? "Edit Expense" : "Add Expense"}</DialogTitle>
-          <DialogContent>
+        <Dialog
+          open={open}
+          onClose={handleClose}
+          maxWidth="md"
+          fullWidth
+          sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+        >
+          <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>{editingExpense ? "Edit Expense" : "Add Expense"}</DialogTitle>
+          <DialogContent sx={{ py: 2 }}>
             <Grid container spacing={2}>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel id="category-select-label">Category</InputLabel>
+                  <InputLabel sx={{ color: darkMode ? "white" : "black" }}>Category</InputLabel>
                   <Select
-                    labelId="category-select-label"
-                    id="category-select"
                     value={category}
-                    label="Category"
                     onChange={(e) => setCategory(e.target.value)}
+                    label="Category"
+                    sx={{ color: darkMode ? "white" : "black", "& .MuiSvgIcon-root": { color: darkMode ? "white" : "black" } }}
                   >
-                    {categories.map((cat, index) => (
-                      <MenuItem key={index} value={cat}>
-                        {cat}
-                      </MenuItem>
+                    {categories.map((cat) => (
+                      <MenuItem key={cat} value={cat}>{cat}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel id="account-select-label">Account</InputLabel>
+                  <InputLabel sx={{ color: darkMode ? "white" : "black" }}>Account</InputLabel>
                   <Select
-                    labelId="account-select-label"
-                    id="account-select"
                     value={accountId}
-                    label="Account"
                     onChange={(e) => setAccountId(e.target.value)}
+                    label="Account"
+                    sx={{ color: darkMode ? "white" : "black", "& .MuiSvgIcon-root": { color: darkMode ? "white" : "black" } }}
                     required
                   >
-                    {accountIds.map((acc, index) => (
-                      <MenuItem key={index} value={acc}>
-                        {acc}
-                      </MenuItem>
+                    {accountIds.map((acc) => (
+                      <MenuItem key={acc} value={acc}>{acc}</MenuItem>
                     ))}
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
+                  fullWidth
                   type="number"
                   label="Amount"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
+                  sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
+                  fullWidth
                   type="date"
                   label="Date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
+                  sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
                 />
               </Grid>
               <Grid item xs={12}>
                 <TextField
+                  fullWidth
                   label="Description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
                 />
               </Grid>
-
-              {/* Conditionally render the Project dropdown if "Project" is selected */}
               {category === "Project" && (
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
-                    <InputLabel id="project-select-label">Project</InputLabel>
+                    <InputLabel sx={{ color: darkMode ? "white" : "black" }}>Project</InputLabel>
                     <Select
-                      labelId="project-select-label"
-                      id="project-select"
                       value={projectId}
-                      label="Project"
                       onChange={(e) => setProjectId(e.target.value)}
+                      label="Project"
+                      sx={{ color: darkMode ? "white" : "black", "& .MuiSvgIcon-root": { color: darkMode ? "white" : "black" } }}
                     >
-                      {projectIds.map((proj, index) => (
-                        <MenuItem key={index} value={proj}>
-                          {proj}
-                        </MenuItem>
+                      {projectIds.map((proj) => (
+                        <MenuItem key={proj} value={proj}>{proj}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Grid>
               )}
-
-              {/* Conditionally render the Employee dropdown if "Salaries" is selected */}
               {category === "Salaries" && (
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12} sm={6}>
                   <FormControl fullWidth>
-                    <InputLabel id="employee-select-label">Employee</InputLabel>
+                    <InputLabel sx={{ color: darkMode ? "white" : "black" }}>Employee</InputLabel>
                     <Select
-                      labelId="employee-select-label"
-                      id="employee-select"
                       multiple
                       value={selectedEmployeeIds}
-                      label="Employee"
                       onChange={(e) => setSelectedEmployeeIds(e.target.value)}
+                      label="Employee"
+                      sx={{ color: darkMode ? "white" : "black", "& .MuiSvgIcon-root": { color: darkMode ? "white" : "black" } }}
                     >
-                      {employeeIds.map((emp, index) => (
-                        <MenuItem key={index} value={emp}>
-                          {emp}
-                        </MenuItem>
+                      {employeeIds.map((emp) => (
+                        <MenuItem key={emp} value={emp}>{emp}</MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 </Grid>
               )}
-
-              {/* Conditionally render the Software Name field if "Software Licenses" is selected */}
               {category === "Software Licenses" && (
                 <Grid item xs={12}>
                   <TextField
+                    fullWidth
                     label="Software Name"
                     value={softwareName}
                     onChange={(e) => setSoftwareName(e.target.value)}
                     required
+                    sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }}
                   />
                 </Grid>
               )}
-
               <Grid item xs={12}>
                 <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={recurring}
-                      onChange={(e) => setRecurring(e.target.checked)}
-                      color="primary"
-                    />
-                  }
+                  control={<Checkbox checked={recurring} onChange={(e) => setRecurring(e.target.checked)} color="primary" />}
                   label="Recurring Expense"
+                  sx={{ color: darkMode ? "white" : "black" }}
                 />
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
-            <Button onClick={handleClose}>Cancel</Button>
-            <Button onClick={handleSubmit} color="primary">
-              Save
-            </Button>
+            <Button onClick={handleClose} sx={{ color: darkMode ? "white" : "black" }}>Cancel</Button>
+            <Button onClick={handleSubmit} color="primary">Save</Button>
           </DialogActions>
         </Dialog>
 
-        {/* Confirm Delete Dialog */}
-        <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-          <DialogTitle>Want to delete expense data?</DialogTitle>
+        <Dialog
+          open={confirmDeleteOpen}
+          onClose={() => setConfirmDeleteOpen(false)}
+          sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+        >
+          <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Want to delete expense data?</DialogTitle>
           <DialogActions>
-            <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
-            <Button onClick={handleDelete} color="error">
-              Delete
-            </Button>
+            <Button onClick={() => setConfirmDeleteOpen(false)} sx={{ color: darkMode ? "white" : "black" }}>Cancel</Button>
+            <Button onClick={handleDelete} color="error">Delete</Button>
           </DialogActions>
         </Dialog>
 
-        {/* Confirm Update Dialog */}
-        <Dialog open={confirmUpdateOpen} onClose={() => setConfirmUpdateOpen(false)}>
-          <DialogTitle>Want to save details?</DialogTitle>
+        <Dialog
+          open={confirmUpdateOpen}
+          onClose={() => setConfirmUpdateOpen(false)}
+          sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
+        >
+          <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Want to save details?</DialogTitle>
           <DialogActions>
-            <Button onClick={() => setConfirmUpdateOpen(false)}>Cancel</Button>
-            <Button onClick={confirmUpdate} color="primary">
-              Confirm
-            </Button>
+            <Button onClick={() => setConfirmUpdateOpen(false)} sx={{ color: darkMode ? "white" : "black" }}>Cancel</Button>
+            <Button onClick={confirmUpdate} color="primary">Confirm</Button>
           </DialogActions>
         </Dialog>
-      </MDBox>
+      </Box>
     </LocalizationProvider>
   );
 };

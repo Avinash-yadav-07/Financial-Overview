@@ -33,16 +33,19 @@ import {
   where,
   onSnapshot,
 } from "firebase/firestore";
+import DashboardNavbar from "examples/Navbars/DashboardNavbar";
+import Footer from "examples/Footer";
+import { useMaterialUIController } from "context";
 
 const statuses = ["Ongoing", "Completed", "On Hold"];
 
-const CustomButton = styled("button")({
+const CustomButton = styled("button")(({ theme }) => ({
   padding: "10px 25px",
   border: "unset",
   borderRadius: "15px",
-  color: "#212121",
+  color: theme.palette.mode === "dark" ? "#e8e8e8" : "#212121",
   zIndex: 1,
-  background: "#e8e8e8",
+  background: theme.palette.mode === "dark" ? "#424242" : "#e8e8e8",
   position: "relative",
   fontWeight: 1000,
   fontSize: "17px",
@@ -57,18 +60,18 @@ const CustomButton = styled("button")({
     height: "100%",
     width: 0,
     borderRadius: "15px",
-    backgroundColor: "#212121",
+    backgroundColor: theme.palette.mode === "dark" ? "#212121" : "#212121",
     zIndex: -1,
     boxShadow: "4px 8px 19px -3px rgba(0,0,0,0.27)",
     transition: "all 250ms",
   },
   "&:hover": {
-    color: "#e8e8e8",
+    color: theme.palette.mode === "dark" ? "#e8e8e8" : "#e8e8e8",
   },
   "&:hover::before": {
     width: "100%",
   },
-});
+}));
 
 const Progress = ({ value, status }) => {
   const getColor = () => {
@@ -151,6 +154,9 @@ const ManageProject = () => {
   const [description, setDescription] = useState("");
   const [completion, setCompletion] = useState("");
 
+  const [controller] = useMaterialUIController();
+  const { miniSidenav, darkMode } = controller;
+
   useEffect(() => {
     const fetchProjects = async () => {
       const querySnapshot = await getDocs(collection(db, "projects"));
@@ -216,14 +222,12 @@ const ManageProject = () => {
     }
   }, [selectedProject]);
 
-  // Automatically update revenueGenerated and profitMargin when budget or projectExpenses change
   useEffect(() => {
     const budgetValue = parseFloat(budget) || 0;
     const calculatedRevenueGenerated = budgetValue - projectExpenses;
-    const calculatedProfitMargin = (calculatedRevenueGenerated / budgetValue) * 100;
-
-    setRevenueGenerated(calculatedRevenueGenerated);
-    setProfitMargin(calculatedProfitMargin);
+    const calculatedProfitMargin = budgetValue > 0 ? (calculatedRevenueGenerated / budgetValue) * 100 : 0;
+    setRevenueGenerated(calculatedRevenueGenerated.toFixed(2));
+    setProfitMargin(calculatedProfitMargin.toFixed(2));
   }, [budget, projectExpenses]);
 
   const handleClickOpen = () => {
@@ -297,13 +301,7 @@ const ManageProject = () => {
   };
 
   const confirmUpdate = async () => {
-    let projectId;
-
-    if (!editingProject) {
-      projectId = generateUniqueProjectId(name);
-    } else {
-      projectId = editingProject.projectId;
-    }
+    let projectId = editingProject ? editingProject.projectId : generateUniqueProjectId(name);
 
     const newProject = {
       projectId,
@@ -352,7 +350,6 @@ const ManageProject = () => {
         .join("");
       const randomNumber = Math.floor(Math.random() * 1000);
       projectId = `${prefix}-${randomNumber}`;
-
       isUnique = !projects.some((project) => project.projectId === projectId);
     }
 
@@ -421,7 +418,7 @@ const ManageProject = () => {
         <MDBox display="flex" justifyContent="center">
           <Button
             variant="gradient"
-            color="info"
+            color={darkMode ? "dark" : "info"}
             onClick={() => handleViewDetails(project)}
             sx={{ mb: 2 }}
           >
@@ -433,89 +430,109 @@ const ManageProject = () => {
   };
 
   return (
-    <MDBox
-      p={3}
-      sx={{
-        marginLeft: "250px",
-        marginTop: "30px",
-        width: "calc(100% - 250px)",
-      }}
-    >
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Card
-            sx={{
-              marginTop: "20px",
-              borderRadius: "12px",
-              overflow: "visible",
-            }}
-          >
-            <MDBox
-              mx={2}
-              mt={-3}
-              py={3}
-              px={2}
-              variant="gradient"
-              bgColor="info"
-              borderRadius="lg"
-              coloredShadow="info"
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <MDTypography variant="h6" color="white">
-                Projects
-              </MDTypography>
-            </MDBox>
-            <MDBox pt={3} pb={2} px={2}>
-              <Button variant="gradient" color="info" onClick={handleClickOpen} sx={{ mb: 2 }}>
-                Add Projects
-              </Button>
-              <DataTable
-                table={tableData}
-                isSorted={false}
-                entriesPerPage={false}
-                showTotalEntries={false}
-                noEndBorder
-              />
-            </MDBox>
-          </Card>
+    <Box sx={{ backgroundColor: darkMode ? "background.default" : "background.paper", minHeight: "100vh" }}>
+      <DashboardNavbar
+        absolute
+        light={!darkMode}
+        isMini={false}
+        sx={{
+          backgroundColor: darkMode ? "rgba(33, 33, 33, 0.9)" : "rgba(255, 255, 255, 0.9)",
+          backdropFilter: "blur(10px)",
+          zIndex: 1100,
+          padding: "0 16px",
+          minHeight: "60px",
+          top: "8px",
+          left: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          width: { xs: "100%", md: miniSidenav ? "calc(100% - 80px)" : "calc(100% - 260px)" },
+        }}
+      />
+      <MDBox
+        p={3}
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          marginTop: { xs: "140px", md: "100px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          minHeight: "calc(100vh - 80px)",
+          paddingTop: { xs: "32px", md: "24px" },
+          zIndex: 1000,
+        }}
+      >
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <Card>
+              <MDBox
+                mx={2}
+                mt={-3}
+                py={3}
+                px={2}
+                variant="gradient"
+                bgColor={darkMode ? "dark" : "info"}
+                borderRadius="lg"
+                coloredShadow={darkMode ? "dark" : "info"}
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <MDTypography variant="h6" color={darkMode ? "white" : "white"}>
+                  Projects
+                </MDTypography>
+              </MDBox>
+              <MDBox pt={3} pb={2} px={2}>
+                <Button variant="gradient" color={darkMode ? "dark" : "info"} onClick={handleClickOpen} sx={{ mb: 2 }}>
+                  Add Projects
+                </Button>
+                <DataTable
+                  table={tableData}
+                  isSorted={false}
+                  entriesPerPage={false}
+                  showTotalEntries={false}
+                  noEndBorder
+                />
+              </MDBox>
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
+      </MDBox>
+      <Box
+        sx={{
+          marginLeft: { xs: "0", md: miniSidenav ? "80px" : "260px" },
+          backgroundColor: darkMode ? "background.default" : "background.paper",
+          zIndex: 1100,
+        }}
+      >
+        <Footer />
+      </Box>
 
       <Dialog
         open={viewDetailsOpen}
         onClose={() => setViewDetailsOpen(false)}
         maxWidth="md"
         fullWidth
+        sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}
       >
-        <DialogTitle>Project Details</DialogTitle>
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Project Details</DialogTitle>
         <DialogContent>
           {selectedProject && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Project ID</Typography>
-                <Typography>{selectedProject.projectId || selectedProject.id || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Project ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.projectId || selectedProject.id || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Name</Typography>
-                <Typography>{selectedProject.name || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Name</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.name || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Account ID</Typography>
-                <Typography>
-                  {selectedProject.accountId?.accountId || selectedProject.accountId || "N/A"}
-                </Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Account ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.accountId?.accountId || selectedProject.accountId || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Client ID</Typography>
-                <Typography>
-                  {selectedProject.clientId?.clientId || selectedProject.clientId || "N/A"}
-                </Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Client ID</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.clientId?.clientId || selectedProject.clientId || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Team</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Team</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {Array.isArray(selectedProject.team)
                     ? selectedProject.team.join(", ")
                     : typeof selectedProject.team === "object"
@@ -523,89 +540,78 @@ const ManageProject = () => {
                     : selectedProject.team || "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Budget</Typography>
-                <Typography>${selectedProject.financialMetrics?.budget || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Budget</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${selectedProject.financialMetrics?.budget || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Expenses</Typography>
-                <Typography>${projectExpenses}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Expenses</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${projectExpenses}</Typography>
               </Grid>
-
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">ROI (%)</Typography>
-                <Typography>{selectedProject.financialMetrics?.roi || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>ROI (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.roi || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Burn Rate</Typography>
-                <Typography>{selectedProject.financialMetrics?.burnRate || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Burn Rate</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.burnRate || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Profit Margin (%)</Typography>
-                <Typography>{selectedProject.financialMetrics?.profitMargin || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Profit Margin (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.profitMargin || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Revenue Generated</Typography>
-                <Typography>${selectedProject.financialMetrics?.revenueGenerated}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Revenue Generated</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>${selectedProject.financialMetrics?.revenueGenerated || projectRevenue}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Expected Revenue</Typography>
-                <Typography>{selectedProject.financialMetrics?.expectedRevenue || 0}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Expected Revenue</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.financialMetrics?.expectedRevenue || 0}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Start Date</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Start Date</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.startDate
                     ? new Date(selectedProject.startDate).toLocaleDateString()
                     : "N/A"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">End Date</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>End Date</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.endDate
                     ? new Date(selectedProject.endDate).toLocaleDateString()
                     : "Ongoing"}
                 </Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Status</Typography>
-                <Typography>{selectedProject.status || "N/A"}</Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Status</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.status || "N/A"}</Typography>
               </Grid>
-              <Grid item xs={6}>
-                <Typography variant="subtitle2">Completion (%)</Typography>
-                <Typography>
+              <Grid item xs={12} sm={6}>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Completion (%)</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>
                   {selectedProject.completion !== undefined
                     ? `${selectedProject.completion}%`
                     : "N/A"}
                 </Typography>
               </Grid>
               <Grid item xs={12}>
-                <Typography variant="subtitle2">Description</Typography>
-                <Typography>{selectedProject.description || "No description available"}</Typography>
+                <Typography variant="subtitle2" sx={{ color: darkMode ? "white" : "black" }}>Description</Typography>
+                <Typography sx={{ color: darkMode ? "white" : "textSecondary" }}>{selectedProject.description || "No description available"}</Typography>
               </Grid>
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDetailsOpen(false)}>Close</Button>
-          <Button onClick={handleEditFromDetails} color="primary">
-            Edit
-          </Button>
-          <Button
-            onClick={() => {
-              setDeleteId(selectedProject.id);
-              setConfirmDeleteOpen(true);
-            }}
-            color="error"
-          >
-            Delete
-          </Button>
+          <Button onClick={handleEditFromDetails} color="primary">Edit</Button>
+          <Button onClick={() => { setDeleteId(selectedProject.id); setConfirmDeleteOpen(true); }} color="error">Delete</Button>
         </DialogActions>
       </Dialog>
 
-      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
-        <DialogTitle>{editingProject ? "Edit Project" : "Add Project"}</DialogTitle>
+      <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}>
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>{editingProject ? "Edit Project" : "Add Project"}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
@@ -614,6 +620,8 @@ const ManageProject = () => {
                 label="Project Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -623,7 +631,7 @@ const ManageProject = () => {
                 value={selectedClient}
                 onChange={(event, newValue) => setSelectedClient(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Client ID" fullWidth />
+                  <TextField {...params} label="Select Client ID" fullWidth sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }} />
                 )}
               />
             </Grid>
@@ -634,7 +642,7 @@ const ManageProject = () => {
                 value={selectedAccount}
                 onChange={(event, newValue) => setSelectedAccount(newValue)}
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Account ID" fullWidth />
+                  <TextField {...params} label="Select Account ID" fullWidth sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }} />
                 )}
               />
             </Grid>
@@ -651,19 +659,21 @@ const ManageProject = () => {
                   ))
                 }
                 renderInput={(params) => (
-                  <TextField {...params} label="Select Employees" fullWidth />
+                  <TextField {...params} label="Select Employees" fullWidth sx={{ input: { color: darkMode ? "white" : "black" }, "& .MuiInputLabel-root": { color: darkMode ? "white" : "black" } }} />
                 )}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Budget"
                 value={budget}
                 onChange={(e) => setBudget(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Start Date"
@@ -671,9 +681,11 @@ const ManageProject = () => {
                 InputLabelProps={{ shrink: true }}
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="End Date"
@@ -681,15 +693,19 @@ const ManageProject = () => {
                 InputLabelProps={{ shrink: true }}
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 select
                 fullWidth
                 label="Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               >
                 {statuses.map((status) => (
                   <MenuItem key={status} value={status}>
@@ -698,13 +714,15 @@ const ManageProject = () => {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={6}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 fullWidth
                 label="Completion (%)"
                 type="number"
                 value={completion}
                 onChange={(e) => setCompletion(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -715,6 +733,8 @@ const ManageProject = () => {
                 rows={3}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                sx={{ input: { color: darkMode ? "white" : "black" } }}
+                InputLabelProps={{ style: { color: darkMode ? "white" : "black" } }}
               />
             </Grid>
           </Grid>
@@ -727,9 +747,9 @@ const ManageProject = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
-        <DialogContent>Are you sure you want to delete this project?</DialogContent>
+      <Dialog open={confirmDeleteOpen} onClose={() => setConfirmDeleteOpen(false)} sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}>
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Confirm Deletion</DialogTitle>
+        <DialogContent sx={{ color: darkMode ? "white" : "black" }}>Are you sure you want to delete this project?</DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmDeleteOpen(false)}>Cancel</Button>
           <Button onClick={handleDelete} color="error">
@@ -738,9 +758,9 @@ const ManageProject = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={confirmUpdateOpen} onClose={() => setConfirmUpdateOpen(false)}>
-        <DialogTitle>Confirm Submission</DialogTitle>
-        <DialogContent>Are you sure you want to save this project?</DialogContent>
+      <Dialog open={confirmUpdateOpen} onClose={() => setConfirmUpdateOpen(false)} sx={{ "& .MuiDialog-paper": { backgroundColor: darkMode ? "background.default" : "background.paper" } }}>
+        <DialogTitle sx={{ color: darkMode ? "white" : "black" }}>Confirm Submission</DialogTitle>
+        <DialogContent sx={{ color: darkMode ? "white" : "black" }}>Are you sure you want to save this project?</DialogContent>
         <DialogActions>
           <Button onClick={() => setConfirmUpdateOpen(false)}>Cancel</Button>
           <Button onClick={confirmUpdate} color="primary">
@@ -748,7 +768,7 @@ const ManageProject = () => {
           </Button>
         </DialogActions>
       </Dialog>
-    </MDBox>
+    </Box>
   );
 };
 
